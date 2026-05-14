@@ -1,84 +1,118 @@
 # tts-reader
 
-Command-line Text-to-Speech reader for Windows — no installation needed, powered by the built-in `System.Speech` engine.
+Command-line Text-to-Speech reader for Windows — powered by the built-in `System.Speech` engine. Read text aloud from the terminal with adjustable speed, voice selection, and keyboard controls.
 
 ## Features
 
-- **Zero dependencies** — uses Windows built-in TTS engine
-- **Adjustable speech rate** — from -10 (slowest) to 10 (fastest)
-- **Keyboard controls** — real-time speed / pause / seek during playback (interactive mode)
-- **Multiple voices** — Chinese (zh-CN, zh-TW) and English (en-US, en-GB)
-- **Flexible input** — inline text, text files, or piped stdin
+- **Zero dependencies** — uses Windows built-in .NET TTS engine
+- **Adjustable speed** — from -10 (slowest) to 10 (fastest)
+- **Interactive controls** — real-time speed / pause / seek during playback
+- **Natural voice support** — upgrade to Microsoft natural voices (Xiaoxiao, etc.)
+- **Claude Code integration** — Stop hook for auto-reading assistant responses
+- **Flexible input** — inline text, text files, piped stdin
 
 ## Quick Start
 
 ```batch
-# Clone this repo
-git clone https://github.com/YOUR_USERNAME/tts-reader.git
+git clone https://github.com/tianshishe1989/tts-reader.git
 cd tts-reader
-
-# Add to PATH (optional — for global access)
 setx PATH "%PATH%;%CD%"
-
-# Start reading
-tts "Hello, world"
+tts "你好，世界"
 ```
 
 ## Usage
 
-### Basic commands
+### CLI Commands
 
 ```batch
-tts "你好，世界"                        # Read text directly
-tts -File document.txt                 # Read from a file
-type report.txt | tts                  # Read from stdin / pipe
-tts -Rate 5 "Faster speech"            # Adjust speed (-10 to 10)
+tts "你好，世界"                              # Direct text
+tts -File document.txt                       # Read from file
+type report.txt | tts                        # Piped stdin
+tts -Rate 5 "Faster"                         # Speed (-10 ~ 10)
 tts -Voice "Microsoft Zira Desktop" "Hello"  # Switch voice
-tts -ListVoices                        # Show all installed voices
-tts -h                                 # Show help
+tts -ListVoices                              # Show all voices
+tts -h                                       # Help
 ```
 
-### Keyboard controls (interactive mode)
-
-Press these keys while TTS is playing:
+### Keyboard Controls (interactive mode)
 
 | Key | Action |
 |-----|--------|
 | `+` / `=` | Speed up |
 | `-` | Slow down |
 | `Space` | Pause / Resume |
-| `←` / `→` | Rewind / Fast-forward |
-| `R` | Restart from beginning |
+| `←` / `→` | Rewind / Forward |
+| `R` | Restart |
 | `Q` / `Esc` | Quit |
 
-### Parameters
+## Natural Voices (Xiaoxiao)
 
-| Parameter | Description | Default |
-|-----------|------------|---------|
-| `-Text` | Text to read (positional) | — |
-| `-File` | Path to a text file | — |
-| `-Rate` | Speech speed (-10 ~ 10) | `1` |
-| `-Voice` | Voice name (use `-ListVoices` to see options) | System default |
-| `-ListVoices` | Show installed TTS voices and exit | — |
+Windows built-in voices are mechanical. For Microsoft's natural neural voices (the "Word Read Aloud" quality):
+
+### Windows 11
+Settings → Time & Language → Speech → Add voices → Install "Microsoft Xiaoxiao"
+
+### Windows 10
+Use [NaturalVoiceSAPIAdapter](https://github.com/gexgd0419/NaturalVoiceSAPIAdapter):
+1. Download from Releases
+2. Run `Installer.exe` as Administrator
+3. Enable "Microsoft Edge Online Voices"
+4. Install both 32-bit and 64-bit
+
+Verify:
+```batch
+tts -ListVoices
+# Should show: Microsoft Xiaoxiao Online, Microsoft Xiaoyi Online, etc.
+```
+
+Switch voice:
+```batch
+tts -Voice "Microsoft Xiaoxiao Online" "你好"
+```
+
+## Claude Code Auto-Read Hook
+
+Make Claude Code automatically read its responses aloud via the Stop hook.
+
+### Setup
+
+**1. settings.json** (`.claude/settings.json`):
+```json
+{
+  "hooks": {
+    "Stop": [{
+      "hooks": [{
+        "type": "command",
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\path\\to\\stop-hook.ps1\"",
+        "async": true,
+        "timeout": 120
+      }]
+    }]
+  }
+}
+```
+
+**2. Files in this repo:**
+- `stop-hook.ps1` — receives stdin JSON from hook, saves to temp file, launches TTS
+- `speak-response.ps1` — reads saved JSON, extracts `last_assistant_message`, speaks it
+
+**3.** Restart Claude Code. Every response will be spoken automatically.
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `tts.ps1` | Main CLI TTS reader |
+| `tts.bat` | CMD wrapper for easy invocation |
+| `stop-hook.ps1` | Claude Code Stop hook entry point |
+| `speak-response.ps1` | Hook TTS speaker (reads from JSON) |
+| `list-natural-voices.ps1` | List WinRT natural voices |
 
 ## Requirements
 
-- **Windows** (7 or later) — uses `System.Speech` which is built into the .NET Framework
+- **Windows** 7+ with .NET Framework
 - **PowerShell** (any version)
-
-No extra downloads. No npm. No Python. Just PowerShell and Windows.
-
-## Voices
-
-Windows comes with these voices by default (varies by Windows version):
-
-| Voice | Language |
-|-------|----------|
-| Microsoft Huihui | Chinese (zh-CN) |
-| Microsoft Hanhan | Chinese (zh-TW) |
-| Microsoft David | English (en-US) |
-| Microsoft Zira | English (en-US) |
-| Microsoft Hazel | English (en-GB) |
+- **Natural voices**: Windows 11 native, or NaturalVoiceSAPIAdapter on Windows 10
 
 ## License
 
