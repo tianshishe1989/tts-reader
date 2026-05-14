@@ -55,6 +55,13 @@ if ($Voice) {
         exit 1
     }
 }
+else {
+    # Auto-prefer natural voices: Xiaoxiao > Xiaoyi > system default
+    $preferred = @('Microsoft Xiaoxiao Online', 'Microsoft Xiaoyi Online')
+    foreach ($v in $preferred) {
+        try { $synth.SelectVoice($v); break } catch {}
+    }
+}
 
 # --- Collect input ---
 if ($File) {
