@@ -1,5 +1,5 @@
 # Hook script: speaks Claude last assistant message via Windows TTS
-# v2: Sentence-by-sentence async playback
+# v2: Sentence-by-sentence async playback, table columns kept
 $ErrorActionPreference = "SilentlyContinue"
 $jsonFile = "$env:USERPROFILE\.claude\last_msg.json"
 if (-not (Test-Path $jsonFile)) { exit 0 }
@@ -36,11 +36,19 @@ Add-Type -AssemblyName System.Speech
 $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
 $synth.Rate = 1
 try { $synth.SelectVoice('Microsoft Xiaoxiao Online') } catch {}
+
+# Helper: append a pause if the sentence doesn't end with punctuation
+function Add-PauseIfNeeded($s) {
+    if ($s -match '[。！？.!?]\s*$') { return $s }
+    return $s + '，'
+}
+
 foreach ($sentence in $sentences) {
     $trimmed = $sentence.Trim()
     if (-not $trimmed) { continue }
+    $withPause = Add-PauseIfNeeded $trimmed
     try {
-        $task = $synth.SpeakAsync($trimmed)
+        $task = $synth.SpeakAsync($withPause)
         while (-not $task.IsCompleted) { Start-Sleep -Milliseconds 100 }
     } catch { break }
 }
