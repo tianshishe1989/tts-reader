@@ -37,18 +37,15 @@ $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
 $synth.Rate = 1
 try { $synth.SelectVoice('Microsoft Xiaoxiao Online') } catch {}
 
-# Helper: append a pause if the sentence doesn't end with punctuation
-function Add-PauseIfNeeded($s) {
-    if ($s -match '[。！？.!?]\s*$') { return $s }
-    return $s + '，'
-}
-
 foreach ($sentence in $sentences) {
     $trimmed = $sentence.Trim()
     if (-not $trimmed) { continue }
-    $withPause = Add-PauseIfNeeded $trimmed
+    # Add trailing comma if no sentence-ending punctuation -- forces TTS to pause
+    if ($trimmed -notmatch '[.!?' + [char]0x3002 + [char]0xFF01 + [char]0xFF1F + ']\s*$') {
+        $trimmed = $trimmed + ', '
+    }
     try {
-        $task = $synth.SpeakAsync($withPause)
+        $task = $synth.SpeakAsync($trimmed)
         while (-not $task.IsCompleted) { Start-Sleep -Milliseconds 100 }
     } catch { break }
 }
